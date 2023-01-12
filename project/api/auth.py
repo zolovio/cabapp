@@ -1,5 +1,3 @@
-import random
-import string
 import logging
 from flask import jsonify, request, Blueprint
 
@@ -9,7 +7,7 @@ from project.api.validators import email_validator, field_type_validator, requir
 from project.models import Role, Gender, User, BlacklistToken, Vehicle, Licence
 from project.exceptions import APIError
 
-auth_blueprint = Blueprint('auth', __name__)
+auth_blueprint = Blueprint('auth', __name__, template_folder='templates')
 logger = logging.getLogger(__name__)
 
 
@@ -76,10 +74,9 @@ def login():
             user.update()
 
             auth_token = user.encode_auth_token(user.id)
-            logger.info(auth_token)
             if auth_token:
                 response_object["status"] = True
-                response_object["message"] = "User logged in successfully.",
+                response_object["message"] = "User logged in successfully."
                 response_object["data"] = {
                     "id": user.id,
                     "role": user.role.name,
