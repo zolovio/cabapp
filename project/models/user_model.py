@@ -39,6 +39,8 @@ class User(db.Model):
 
     account_suspension = db.Column(db.Boolean, default=False)
     active = db.Column(db.Boolean, default=True, nullable=False)
+    fcm_verified = db.Column(db.Boolean, default=False, nullable=False)
+    email_verified = db.Column(db.Boolean, default=False, nullable=False)
     is_admin = db.Column(db.Boolean, nullable=False, default=False)
 
     role = db.Column(db.Enum(Role), nullable=False, default=Role.user)
@@ -84,6 +86,8 @@ class User(db.Model):
             "profile_picture": self.profile_picture,
             "role": self.role.name,
             "active": self.active,
+            "mobile_no_verified": self.fcm_verified,
+            "email_verified": self.email_verified,
             "is_admin": self.is_admin,
             "timestamp": self.timestamp.strftime("%Y-%m-%d %H:%M:%S") if self.timestamp else None
         }

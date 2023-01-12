@@ -226,6 +226,103 @@ def update_user_location(user_id):
         return jsonify(response_object), 200
 
 
+@user_blueprint.route('/users/status/mobile', methods=['GET', 'PUT'])
+@authenticate
+def mobile_no_otp(user_id):
+    """Get or update user's mobile no. verification status"""
+
+    response_object = {
+        'status': False,
+        'message': 'Invalid payload.',
+    }
+
+    try:
+        user = User.query.get(int(user_id))
+
+        if request.method == 'GET':
+            response_object['status'] = True
+            response_object['message'] = 'User status retrieved successfully.'
+            response_object['data'] = {
+                'mobile_no_verified': user.fcm_verified
+            }
+
+            return jsonify(response_object), 200
+
+        post_data = request.get_json()
+
+        if not post_data:
+            return jsonify(response_object), 200
+
+        post_data = field_type_validator(post_data, {"status": bool})
+        required_validator(post_data, ['status'])
+
+        user.fcm_verified = post_data.get('status')
+        user.update()
+
+        response_object['status'] = True
+        response_object['message'] = 'User status updated successfully.'
+        response_object['data'] = {
+            'mobile_no_verified': user.fcm_verified
+        }
+
+        return jsonify(response_object), 200
+
+    except Exception as e:
+        db.session.rollback()
+        response_object['message'] = str(e)
+        return jsonify(response_object), 200
+
+
+@user_blueprint.route('/users/status/email', methods=['GET', 'PUT'])
+@authenticate
+def email_otp(user_id):
+    """Get or update user's email verification status"""
+
+    response_object = {
+        'status': False,
+        'message': 'Invalid payload.',
+    }
+
+    try:
+        user = User.query.get(int(user_id))
+
+        if not user:
+            raise APIError("User does not exist")
+
+        if request.method == 'GET':
+            response_object['status'] = True
+            response_object['message'] = 'User status retrieved successfully.'
+            response_object['data'] = {
+                'email_verified': user.email_verified
+            }
+
+            return jsonify(response_object), 200
+
+        post_data = request.get_json()
+
+        if not post_data:
+            return jsonify(response_object), 200
+
+        post_data = field_type_validator(post_data, {"status": bool})
+        required_validator(post_data, ['status'])
+
+        user.email_verified = post_data.get('status')
+        user.update()
+
+        response_object['status'] = True
+        response_object['message'] = 'User status updated successfully.'
+        response_object['data'] = {
+            'email_verified': user.email_verified
+        }
+
+        return jsonify(response_object), 200
+
+    except Exception as e:
+        db.session.rollback()
+        response_object['message'] = str(e)
+        return jsonify(response_object), 200
+
+
 @user_blueprint.route('/users/delete', methods=['DELETE'])
 @authenticate
 def delete_user(user_id):
