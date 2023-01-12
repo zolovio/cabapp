@@ -184,10 +184,14 @@ def register():
     address = post_data.get('address')
 
     try:
-        user = User.query.filter_by(mobile_no=mobile_no, email=email).first()
-
+        user = User.query.filter_by(mobile_no=mobile_no).first()
         if user:
             response_object['message'] = 'Mobile number already exists.'
+            return jsonify(response_object), 200
+
+        user = User.query.filter_by(email=email).first()
+        if user:
+            response_object['message'] = 'Email already exists.'
             return jsonify(response_object), 200
 
         new_user = User(
@@ -201,6 +205,8 @@ def register():
             role=role,
             address=address
         )
+
+        new_user.insert()
 
         if Role[role] == Role.driver:
             vehicle = post_data.get('vehicle')
@@ -216,8 +222,9 @@ def register():
             licence = field_type_validator(licence, field_types)
 
             if licence:
-                required_fields = ['licence_no', 'licence_image']
-                required_validator(licence, required_fields)
+                # required_fields = ['licence_no', 'licence_image']
+
+                # required_validator(licence, required_fields)
 
                 Licence(
                     user_id=new_user.id,
@@ -226,9 +233,9 @@ def register():
                 ).insert()
 
             if vehicle:
-                required_fields = ['vehicle_no',
-                                   'vehicle_image', 'vehicle_plate_image']
-                required_validator(vehicle, required_fields)
+                # required_fields = ['vehicle_no',
+                #                    'vehicle_image', 'vehicle_plate_image']
+                # required_validator(vehicle, required_fields)
 
                 Vehicle(
                     user_id=new_user.id,
@@ -237,10 +244,8 @@ def register():
                     vehicle_plate_image=vehicle.get('vehicle_plate_image')
                 ).insert()
 
-        new_user.insert()
-
         auth_token = new_user.encode_auth_token(new_user.id)
-        response_object['status'] = False
+        response_object['status'] = True
         response_object['message'] = 'Successfully registered as {}.'.format(
             role)
         response_object['data'] = {
