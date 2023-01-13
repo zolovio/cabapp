@@ -250,8 +250,9 @@ def register():
         response_object['message'] = 'Successfully registered as {}.'.format(
             role)
         response_object['data'] = {
-            'auth_token': auth_token.decode('utf-8'),
-            'id': new_user.id
+            'id': new_user.id,
+            "role": new_user.role.name,
+            'auth_token': auth_token.decode('utf-8')
         }
 
         return jsonify(response_object), 200
