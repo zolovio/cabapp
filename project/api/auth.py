@@ -215,7 +215,7 @@ def register():
             field_types = {
                 "vehicle_no": str, "vehicle_image": str,
                 "vehicle_plate_image": str, "licence_no": str,
-                "licence_image": str
+                "licence_image_front": str, "licence_image_back": str
             }
 
             vehicle = field_type_validator(vehicle, field_types)
@@ -229,7 +229,8 @@ def register():
                 Licence(
                     user_id=new_user.id,
                     licence_no=licence.get('licence_no'),
-                    licence_image=licence.get('licence_image')
+                    licence_image_front=licence.get('licence_image_front'),
+                    licence_image_back=licence.get('licence_image_back')
                 ).insert()
 
             if vehicle:

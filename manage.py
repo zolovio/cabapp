@@ -83,7 +83,8 @@ def seed_db():
 
     Licence(
         licence_no="1234567890",
-        licence_image="https://ik.imagekit.io/zol0vio/user_icon_G2tZaIWiQ.png",
+        licence_image_front="https://ik.imagekit.io/zol0vio/user_icon_G2tZaIWiQ.png",
+        licence_image_back="https://ik.imagekit.io/zol0vio/user_icon_G2tZaIWiQ.png",
         user_id=driver.id
     ).insert()
 
