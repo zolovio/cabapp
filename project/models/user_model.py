@@ -267,15 +267,17 @@ class Licence(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     licence_no = db.Column(db.String(128), default="", nullable=False)
-    licence_image = db.Column(db.String(128), default="", nullable=False)
+    licence_image_front = db.Column(db.String(128), default="", nullable=False)
+    licence_image_back = db.Column(db.String(128), default="", nullable=False)
 
     def __repr__(self):
         return f"Licence {self.id} {self.user_id}"
 
-    def __init__(self, user_id: int, licence_no: str, licence_image: str):
+    def __init__(self, user_id: int, licence_no: str, licence_image_front: str, licence_image_back: str):
         self.user_id = user_id
         self.licence_no = licence_no
-        self.licence_image = licence_image
+        self.licence_image_front = licence_image_front
+        self.licence_image_back = licence_image_back
 
     def insert(self):
         db.session.add(self)
@@ -294,6 +296,7 @@ class Licence(db.Model):
             "id": self.id,
             "user_id": self.user_id,
             "licence_no": self.licence_no,
-            "licence_image": self.licence_image,
+            "licence_image_front": self.licence_image_front,
+            "licence_image_back": self.licence_image_back,
             "timestamp": self.timestamp.strftime("%Y-%m-%d %H:%M:%S") if self.timestamp else None
         }

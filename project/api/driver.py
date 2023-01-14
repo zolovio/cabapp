@@ -269,7 +269,7 @@ def update_driver_licence(driver_id):
             return jsonify(response_object), 200
 
         field_types = {
-            "licence_no": str, "licence_image": str
+            "licence_no": str, "licence_image_front": str, "licence_image_back": str
         }
 
         post_data = field_type_validator(post_data, field_types)
@@ -279,7 +279,8 @@ def update_driver_licence(driver_id):
             licence = Licence(
                 user_id=driver.id,
                 licence_no=post_data.get('licence_no'),
-                licence_image=post_data.get('licence_image')
+                licence_image_front=post_data.get('licence_image_front'),
+                licence_image_back=post_data.get('licence_image_back')
             )
 
             licence.insert()
@@ -287,8 +288,10 @@ def update_driver_licence(driver_id):
         else:
             licence.licence_no = post_data.get(
                 'licence_no') or licence.licence_no
-            licence.licence_image = post_data.get(
-                'licence_image') or licence.licence_image
+            licence.licence_image_front = post_data.get(
+                'licence_image_front') or licence.licence_image_front
+            licence.licence_image_back = post_data.get(
+                'licence_image_back') or licence.licence_image_back
             licence.update()
 
         licence_json = licence.to_json()
