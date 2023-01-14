@@ -1,8 +1,9 @@
 import os
+import random
 import logging
 
 from flask import Blueprint, jsonify, request
-from flask import current_app
+from flask import current_app, session
 
 from project.models import (
     User,
@@ -13,6 +14,7 @@ from project.models import (
 
 from project import db, bcrypt
 from project.exceptions import APIError
+from project.api.utils import send_email
 from project.api.authentications import authenticate
 from project.api.validators import email_validator, field_type_validator, required_validator
 
@@ -303,16 +305,63 @@ def email_otp(user_id):
         if not post_data:
             return jsonify(response_object), 200
 
-        post_data = field_type_validator(post_data, {"status": bool})
-        required_validator(post_data, ['status'])
+        post_data = field_type_validator(post_data, {"otp": int})
+        required_validator(post_data, ['otp'])
 
-        user.email_verified = post_data.get('status')
+        logger.info("Current OTP: {}".format((str(session.get(user.email)))))
+
+        current_otp = session.get(user.email)
+
+        if not current_otp:
+            raise APIError("OTP has expired")
+
+        if post_data.get('otp') != int(current_otp):
+            raise APIError("Invalid OTP")
+
+        user.email_verified = True
         user.update()
 
         response_object['status'] = True
         response_object['message'] = 'User status updated successfully.'
         response_object['data'] = {
             'email_verified': user.email_verified
+        }
+
+        return jsonify(response_object), 200
+
+    except Exception as e:
+        db.session.rollback()
+        response_object['message'] = str(e)
+        return jsonify(response_object), 200
+
+
+@user_blueprint.route('/users/otp/email', methods=['GET'])
+@authenticate
+def get_email_otp(user_id):
+    """Send email verification OTP"""
+
+    response_object = {
+        'status': False,
+        'message': 'Invalid payload.',
+    }
+
+    try:
+        user = User.query.get(int(user_id))
+
+        if user.email_verified:
+            raise APIError("Email already verified")
+
+        email_otp = random.randint(100000, 999999)
+
+        # store otp to flask session
+        session[user.email] = email_otp
+
+        send_email(email=user.email, name=user.fullname, body=str(email_otp))
+
+        response_object['status'] = True
+        response_object['message'] = 'Email OTP sent successfully.'
+        response_object['data'] = {
+            'email_otp': email_otp
         }
 
         return jsonify(response_object), 200
