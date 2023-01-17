@@ -34,6 +34,8 @@ class User(db.Model):
     dob = db.Column(db.DateTime, nullable=False)
     gender = db.Column(db.Enum(Gender), nullable=False)
     address = db.Column(db.String(128), default="", nullable=True)
+    location_id = db.Column(
+        db.Integer, db.ForeignKey('location.id'), nullable=True)
     profile_picture = db.Column(db.String(128), default="", nullable=True)
     timestamp = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
@@ -49,7 +51,7 @@ class User(db.Model):
         return f"User {self.id} {self.username}"
 
     def __init__(self, fullname: str, mobile_no: str, email: str, password: str, dob: str,
-                 gender: str, address: str, profile_picture: str, role: str):
+                 gender: str, address: str, profile_picture: str, role: str, location_id: int = None):
 
         self.fullname = fullname
         self.mobile_no = mobile_no
@@ -61,6 +63,7 @@ class User(db.Model):
         self.address = address
         self.profile_picture = profile_picture
         self.role = Role[role]
+        self.location_id = location_id
 
     def insert(self):
         db.session.add(self)
@@ -75,6 +78,7 @@ class User(db.Model):
         db.session.commit()
 
     def to_json(self):
+        location = Location.query.get(self.location_id)
         return {
             "id": self.id,
             "fullname": self.fullname,
@@ -83,6 +87,7 @@ class User(db.Model):
             "dob": self.dob.strftime("%Y-%m-%d") if self.dob else None,
             "gender": self.gender.name,
             "address": self.address,
+            "location": location.to_json() if location else None,
             "profile_picture": self.profile_picture,
             "role": self.role.name,
             "active": self.active,
@@ -183,18 +188,18 @@ class Location(db.Model):
     __tablename__ = "location"
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     latitude = db.Column(db.Float, nullable=False)
     longitude = db.Column(db.Float, nullable=False)
+    place = db.Column(db.String(100), nullable=True)
 
     def __repr__(self):
         return f"Location {self.id} {self.user_id}"
 
-    def __init__(self, user_id: int, latitude: float, longitude: float):
-        self.user_id = user_id
+    def __init__(self, latitude: float, longitude: float, place: str = None):
         self.latitude = latitude
         self.longitude = longitude
+        self.place = place
 
     def insert(self):
         db.session.add(self)
@@ -211,9 +216,9 @@ class Location(db.Model):
     def to_json(self):
         return {
             "id": self.id,
-            "user_id": self.user_id,
             "latitude": self.latitude,
             "longitude": self.longitude,
+            "place": self.place,
             "timestamp": self.timestamp.strftime("%Y-%m-%d %H:%M:%S") if self.timestamp else None
         }
 
