@@ -1,7 +1,9 @@
 from flask.cli import FlaskGroup
 
 from project import create_app, db
-from project.models.user_model import User, Location, Licence, Vehicle
+from project.models import (
+    User, Location, Licence, Vehicle, Church
+)
 
 app = create_app()
 cli = FlaskGroup(create_app=create_app)
@@ -41,7 +43,15 @@ def seed_db():
         role="admin"
     ).insert()
 
-    user = User(
+    location = Location(
+        latitude=53.47553794561768,
+        longitude=-2.216781067620185,
+        place="Manchester, UK",
+    )
+
+    location.insert()
+
+    User(
         fullname="John Doe",
         mobile_no="+2234567890",
         email="john.doe@cabby.com",
@@ -50,15 +60,8 @@ def seed_db():
         gender="male",
         address="",
         profile_picture="https://ik.imagekit.io/zol0vio/user_icon_G2tZaIWiQ.png",
-        role="user"
-    )
-
-    user.insert()
-
-    Location(
-        latitude=53.47553794561768,
-        longitude=-2.216781067620185,
-        user_id=user.id
+        role="user",
+        location_id=location.id
     ).insert()
 
     driver = User(
@@ -70,16 +73,11 @@ def seed_db():
         gender="female",
         address="1234 Main Street, Manchester, NH, UK, 12345",
         profile_picture="https://ik.imagekit.io/zol0vio/user_icon_G2tZaIWiQ.png",
-        role="driver"
+        role="driver",
+        location_id=location.id
     )
 
     driver.insert()
-
-    Location(
-        latitude=53.47553794561768,
-        longitude=-2.216781067620185,
-        user_id=driver.id
-    ).insert()
 
     Licence(
         licence_no="1234567890",
@@ -96,6 +94,16 @@ def seed_db():
     ).insert()
 
     print("Database seeded!")
+
+    Church(
+        name="St. Mary's Church",
+        opening_time="09:00 AM",
+        closing_time="05:00 PM",
+        address="1234 Main Street, Manchester, NH, UK, 12345",
+        location_id=location.id,
+        contact_no="+1234567890",
+        image_url="https://ik.imagekit.io/zol0vio/old-church_1vbz7i0Lj.jpg"
+    ).insert()
 
 
 if __name__ == "__main__":

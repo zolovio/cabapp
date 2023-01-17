@@ -66,14 +66,10 @@ def get_single_user(user_id):
     if not user:
         return jsonify(response_object), 200
 
-    user_json = user.to_json()
-    location = Location.query.filter_by(user_id=user.id).first()
-    user_json['location'] = location.to_json() if location else None
-
     response_object['status'] = True
     response_object['message'] = 'User details retrieved successfully'
     response_object['data'] = {
-        'user': user_json
+        'user': user.to_json()
     }
 
     return jsonify(response_object), 200
@@ -93,14 +89,10 @@ def get_user_by_auth_token(user_id):
     if not user:
         return jsonify(response_object), 200
 
-    user_json = user.to_json()
-    location = Location.query.filter_by(user_id=user.id).first()
-    user_json['location'] = location.to_json() if location else None
-
     response_object['status'] = True
     response_object['message'] = 'User details retrieved successfully'
     response_object['data'] = {
-        'user': user_json
+        'user': user.to_json()
     }
 
     return jsonify(response_object), 200
@@ -189,17 +181,17 @@ def update_user_location(user_id):
             return jsonify(response_object), 200
 
         field_types = {
-            "latitude": float, "longitude": float
+            "latitude": float, "longitude": float, "place": str
         }
 
         post_data = field_type_validator(post_data, field_types)
 
-        location = Location.query.filter_by(user_id=user.id).first()
+        location = Location.query.get(user.location_id)
         if not location:
             location = Location(
-                user_id=user.id,
                 latitude=post_data.get('latitude'),
-                longitude=post_data.get('longitude')
+                longitude=post_data.get('longitude'),
+                place=post_data.get('place')
             )
 
             location.insert()
@@ -208,7 +200,12 @@ def update_user_location(user_id):
             location.latitude = post_data.get('latitude') or location.latitude
             location.longitude = post_data.get(
                 'longitude') or location.longitude
+            location.place = post_data.get('place') or location.place
+
             location.update()
+
+        user.location_id = location.id
+        user.update()
 
         location_json = location.to_json()
 
@@ -387,7 +384,7 @@ def delete_user(user_id):
         if not user:
             raise APIError("User does not exist")
 
-        location = Location.query.filter_by(user_id=user.id).first()
+        location = Location.query.get(user.location_id)
         if location:
             location.delete()
 
