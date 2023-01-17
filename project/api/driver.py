@@ -61,11 +61,9 @@ def get_single_driver(driver_id):
         driver_json = driver.to_json()
         vehicle = Vehicle.query.filter_by(user_id=int(driver_id)).first()
         licence = Licence.query.filter_by(user_id=int(driver_id)).first()
-        location = Location.query.filter_by(user_id=int(driver_id)).first()
 
         driver_json['vehicle'] = vehicle.to_json() if vehicle else None
         driver_json['licence'] = licence.to_json() if licence else None
-        driver_json['location'] = location.to_json() if location else None
 
         response_object['status'] = True
         response_object['message'] = 'Driver found'
@@ -98,11 +96,9 @@ def get_driver(driver_id):
         driver_json = driver.to_json()
         vehicle = Vehicle.query.filter_by(user_id=int(driver_id)).first()
         licence = Licence.query.filter_by(user_id=int(driver_id)).first()
-        location = Location.query.filter_by(user_id=int(driver_id)).first()
 
         driver_json['vehicle'] = vehicle.to_json() if vehicle else None
         driver_json['licence'] = licence.to_json() if licence else None
-        driver_json['location'] = location.to_json() if location else None
 
         response_object['status'] = True
         response_object['message'] = 'Driver found'
@@ -173,11 +169,9 @@ def update_driver_info(driver_id):
 
         vehicle = Vehicle.query.filter_by(user_id=driver.id).first()
         licence = Licence.query.filter_by(user_id=driver.id).first()
-        location = Location.query.filter_by(user_id=driver.id).first()
 
         driver_json["vehicle"] = vehicle.to_json() if vehicle else None
         driver_json["licence"] = licence.to_json() if licence else None
-        driver_json["location"] = location.to_json() if location else None
 
         response_object['status'] = True
         response_object['message'] = 'Driver info updated successfully'
@@ -328,17 +322,17 @@ def update_driver_location(driver_id):
             return jsonify(response_object), 200
 
         field_types = {
-            "latitude": float, "longitude": float
+            "latitude": float, "longitude": float, "place": str
         }
 
         post_data = field_type_validator(post_data, field_types)
 
-        location = Location.query.filter_by(user_id=driver.id).first()
+        location = Location.query.get(driver.location_id)
         if not location:
             location = Location(
-                user_id=driver.id,
                 latitude=post_data.get('latitude'),
-                longitude=post_data.get('longitude')
+                longitude=post_data.get('longitude'),
+                place=post_data.get('place')
             )
 
             location.insert()
@@ -347,7 +341,11 @@ def update_driver_location(driver_id):
             location.latitude = post_data.get('latitude') or location.latitude
             location.longitude = post_data.get(
                 'longitude') or location.longitude
+            location.place = post_data.get('place') or location.place
             location.update()
+
+        driver.location_id = location.id
+        driver.update()
 
         location_json = location.to_json()
 
@@ -389,7 +387,7 @@ def delete_driver(driver_id):
         if vehicle:
             vehicle.delete()
 
-        location = Location.query.filter_by(user_id=driver.id).first()
+        location = Location.query.get(driver.location_id)
         if location:
             location.delete()
 
