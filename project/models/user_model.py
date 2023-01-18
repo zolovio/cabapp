@@ -93,7 +93,6 @@ class User(db.Model):
             "active": self.active,
             "mobile_no_verified": self.fcm_verified,
             "email_verified": self.email_verified,
-            "is_admin": self.is_admin,
             "timestamp": self.timestamp.strftime("%Y-%m-%d %H:%M:%S") if self.timestamp else None
         }
 

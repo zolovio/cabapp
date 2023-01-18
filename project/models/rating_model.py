@@ -69,7 +69,7 @@ class Rating(db.Model):
     def get_average_rating(driver_id: int):
         ratings = Rating.query.filter_by(driver_id=driver_id).all()
         if len(ratings) == 0:
-            return 0
+            return 0.0
 
         average_rating = sum(
             [rating.rating for rating in ratings]) / len(ratings)
