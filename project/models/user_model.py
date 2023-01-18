@@ -44,7 +44,7 @@ class User(db.Model):
     fcm_verified = db.Column(db.Boolean, default=False, nullable=False)
     email_verified = db.Column(db.Boolean, default=False, nullable=False)
     is_admin = db.Column(db.Boolean, nullable=False, default=False)
-
+    email_otp = db.Column(db.Integer, nullable=True)
     role = db.Column(db.Enum(Role), nullable=False, default=Role.user)
 
     def __repr__(self):
