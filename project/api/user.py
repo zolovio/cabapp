@@ -299,18 +299,20 @@ def email_otp(user_id):
 
         post_data = request.get_json()
 
+        if user.email_verified:
+            raise APIError("Email already verified")
+
         if not post_data:
             return jsonify(response_object), 200
 
         post_data = field_type_validator(post_data, {"otp": int})
         required_validator(post_data, ['otp'])
 
-        logger.info("Current OTP: {}".format((str(session.get(user.email)))))
-
-        current_otp = session.get(user.email)
+        current_otp = user.email_otp
+        logger.info("Current OTP: {}".format(current_otp))
 
         if not current_otp:
-            raise APIError("OTP has expired")
+            raise APIError("OTP not sent yet")
 
         if post_data.get('otp') != int(current_otp):
             raise APIError("Invalid OTP")
@@ -350,8 +352,10 @@ def get_email_otp(user_id):
 
         email_otp = random.randint(100000, 999999)
 
-        # store otp to flask session
-        session[user.email] = email_otp
+        user.email_otp = email_otp
+        user.update()
+
+        logger.info("Current OTP in session: {}".format(user.email_otp))
 
         send_email(email=user.email, name=user.fullname, body=str(email_otp))
 
@@ -364,6 +368,7 @@ def get_email_otp(user_id):
         return jsonify(response_object), 200
 
     except Exception as e:
+        logger.error(e)
         db.session.rollback()
         response_object['message'] = str(e)
         return jsonify(response_object), 200
