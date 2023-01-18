@@ -103,7 +103,7 @@ def create_trip(user_id):
             return jsonify(response_object), 200
 
         field_types = {
-            "origin_id": int, "destination_id": int, "date": str,
+            "origin": dict, "destination_id": int, "date": str,
             "time": str, "number_of_seats": int, "carpool": bool
         }
 
@@ -113,7 +113,7 @@ def create_trip(user_id):
         post_data = field_type_validator(post_data, field_types)
         required_validator(post_data, required_fields)
 
-        source_id = post_data.get('origin_id')
+        source = post_data.get('origin')
         destination_id = post_data.get('destination_id')
         date = post_data.get('date')
         time = post_data.get('time')
@@ -139,10 +139,23 @@ def create_trip(user_id):
                                          "on this date.".format(status)
             return jsonify(response_object), 200
 
-        source = Location.query.get(source_id)
-        if not source:
-            response_object['message'] = 'Origin does not exist'
-            return jsonify(response_object), 200
+        field_types = {
+            "latitude": float, "longitude": float, "place": str
+        }
+
+        required_fields = list(field_types.keys())
+        required_fields.remove("place")
+
+        source = field_type_validator(source, field_types)
+        required_validator(source, required_fields)
+
+        source = Location(
+            latitude=source.get("latitude"),
+            longitude=source.get("longitude"),
+            place=source.get("place")
+        )
+
+        source.insert()
 
         destination = Location.query.get(destination_id)
         if not destination:
@@ -151,7 +164,7 @@ def create_trip(user_id):
 
         trip = Trip(
             driver_id=user_id,
-            source_id=source_id,
+            source_id=source.id,
             destination_id=destination_id,
             date=date,
             time=time,
@@ -201,13 +214,13 @@ def update_trip(user_id, trip_id):
             return jsonify(response_object), 200
 
         field_types = {
-            "origin_id": int, "destination_id": int, "date": str,
+            "origin": dict, "destination_id": int, "date": str,
             "time": str, "number_of_seats": int, "carpool": bool
         }
 
         post_data = field_type_validator(post_data, field_types)
 
-        source_id = post_data.get('origin_id')
+        source = post_data.get('origin')
         destination_id = post_data.get('destination_id')
         date = post_data.get('date')
         time = post_data.get('time')
@@ -244,19 +257,41 @@ def update_trip(user_id, trip_id):
                                                  "on this date.".format(status)
                     return jsonify(response_object), 200
 
-        if source_id:
-            source = Location.query.get(source_id)
-            if not source:
-                response_object['message'] = 'Origin does not exist'
-                return jsonify(response_object), 200
-
         if destination_id:
             destination = Location.query.get(destination_id)
             if not destination:
                 response_object['message'] = 'Destination does not exist'
                 return jsonify(response_object), 200
 
-        trip.source_id = source_id or trip.source_id
+        field_types = {
+            "latitude": float, "longitude": float, "place": str
+        }
+
+        required_fields = list(field_types.keys())
+        required_fields.remove("place")
+
+        source = field_type_validator(source, field_types)
+        required_validator(source, required_fields)
+
+        old_source = Location.query.get(trip.source_id)
+        if old_source:
+            old_source.latitude = source.get("latitude") or old_source.latitude
+            old_source.longitude = source.get(
+                "longitude") or old_source.longitude
+            old_source.place = source.get("place") or old_source.place
+
+            old_source.update()
+
+        else:
+            old_source = Location(
+                latitude=source.get("latitude"),
+                longitude=source.get("longitude"),
+                place=source.get("place")
+            )
+
+            old_source.insert()
+
+        trip.source_id = old_source.id or trip.source_id
         trip.destination_id = destination_id or trip.destination_id
         trip.date = date or trip.date
         trip.time = time or trip.time
