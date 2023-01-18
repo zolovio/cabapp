@@ -93,17 +93,25 @@ def seed_db():
         user_id=driver.id
     ).insert()
 
-    print("Database seeded!")
+    location = Location(
+        latitude=53.47553794561768,
+        longitude=-2.216781067620185,
+        place="St. Mary's Church",
+    )
+
+    location.insert()
 
     Church(
         name="St. Mary's Church",
-        opening_time="09:00 AM",
-        closing_time="05:00 PM",
+        opening_time="09:00:00",
+        closing_time="17:00:00",
         address="1234 Main Street, Manchester, NH, UK, 12345",
         location_id=location.id,
         contact_no="+1234567890",
         image_url="https://ik.imagekit.io/zol0vio/old-church_1vbz7i0Lj.jpg"
     ).insert()
+
+    print("Database seeded!")
 
 
 if __name__ == "__main__":
