@@ -26,7 +26,7 @@ trip_blueprint = Blueprint('trip', __name__, template_folder='templates')
 @trip_blueprint.route('/trip/ping', methods=['GET'])
 def ping_pong():
     return jsonify({
-        'status': 'success',
+        'status': True,
         'message': 'pong!'
     })
 
@@ -484,18 +484,18 @@ def trip_requests(user_id):
             return jsonify(response_object), 200
 
         pending_requests = TripPassenger.query.join(
-            Trip,
-            TripPassenger.trip_id == Trip.id
+            Trip, Trip.id == TripPassenger.trip_id
         ).filter(
             Trip.driver_id == user_id,
-            Trip.status == TripStatus.active,
+            Trip.status == TripStatus.pending,
             TripPassenger.request_status == RequestStatus.pending
         ).order_by(
             TripPassenger.timestamp.desc()
         ).all()
 
         response_object['status'] = True
-        response_object['message'] = 'Trip requests retrieved successfully'
+        response_object['message'] = '{} trip request(s) available'.format(
+            len(pending_requests))
         response_object['data'] = {
             'requests': [request.to_json() for request in pending_requests]
         }
@@ -523,9 +523,9 @@ def trip_request(user_id, request_id):
             response_object['message'] = 'Only drivers can access trip requests'
             return jsonify(response_object), 200
 
-        passenger_request = TripPassenger.query.filter_by(
-            id=request_id,
-            request_status=RequestStatus.pending
+        passenger_request = TripPassenger.query.filter(
+            TripPassenger.id == request_id,
+            TripPassenger.request_status == RequestStatus.pending
         ).first()
         if not passenger_request:
             response_object['message'] = 'Trip request does not exist'
@@ -567,7 +567,7 @@ def trip_request(user_id, request_id):
         response_object['status'] = True
         response_object['message'] = 'Trip request updated successfully'
         response_object['data'] = {
-            'request': request.to_json()
+            'request': passenger_request.to_json()
         }
 
         return jsonify(response_object), 200
