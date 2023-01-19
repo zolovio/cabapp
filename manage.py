@@ -33,7 +33,7 @@ def seed_db():
 
     User(
         fullname="Super Admin",
-        mobile_no="+1234567890",
+        mobile_no="+12345678901",
         email="admin@cabby.com",
         password="greaterthaneight",
         dob="1990-01-01",
@@ -53,7 +53,7 @@ def seed_db():
 
     User(
         fullname="John Doe",
-        mobile_no="+2234567890",
+        mobile_no="+22345678901",
         email="john.doe@cabby.com",
         password="greaterthaneight",
         dob="1990-01-01",
@@ -66,7 +66,7 @@ def seed_db():
 
     driver = User(
         fullname="Mary Jane",
-        mobile_no="+3234567890",
+        mobile_no="+32345678900",
         email="mary.jane@cabby.com",
         password="greaterthaneight",
         dob="1990-01-01",

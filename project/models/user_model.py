@@ -78,7 +78,7 @@ class User(db.Model):
         db.session.commit()
 
     def to_json(self):
-        location = Location.query.get(self.location_id)
+        location = Location.query.filter_by(id=self.location_id).first()
         return {
             "id": self.id,
             "fullname": self.fullname,
@@ -190,7 +190,7 @@ class Location(db.Model):
     timestamp = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     latitude = db.Column(db.Float, nullable=False)
     longitude = db.Column(db.Float, nullable=False)
-    place = db.Column(db.String(100), nullable=True)
+    place = db.Column(db.Text, nullable=True)
 
     def __repr__(self):
         return f"Location {self.id} {self.user_id}"
