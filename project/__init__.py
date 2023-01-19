@@ -61,6 +61,8 @@ def create_app(script_info=None):
     app.register_blueprint(church_blueprint)
     from project.api import trip_blueprint
     app.register_blueprint(trip_blueprint)
+    from project.api import ride_blueprint
+    app.register_blueprint(ride_blueprint)
 
     @app.errorhandler(Exception)
     def manage_exception(ex):
