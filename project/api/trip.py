@@ -13,8 +13,7 @@ from project.models import (
     TripPassenger
 )
 
-from project import db, bcrypt
-from project.exceptions import APIError
+from project import db
 from project.api.authentications import authenticate
 from project.api.validators import field_type_validator, required_validator
 
@@ -561,6 +560,15 @@ def trip_request(user_id, request_id):
                 request.request_status.name, status)
             return jsonify(response_object), 200
 
+        if status == 'accepted':
+            trip = Trip.query.get(passenger_request.trip_id)
+            if trip.status != TripStatus.pending:
+                response_object['message'] = 'Trip request cannot be accepted'
+                return jsonify(response_object), 200
+
+            trip.number_of_seats -= passenger_request.seats_booked
+            trip.update()
+
         passenger_request.request_status = RequestStatus[status]
         passenger_request.update()
 
@@ -574,6 +582,54 @@ def trip_request(user_id, request_id):
 
     except Exception as e:
         db.session.rollback()
+        logger.exception(e)
+        response_object['message'] = str(e)
+        return jsonify(response_object), 200
+
+
+@trip_blueprint.route('/trip/rides', methods=['GET'])
+@authenticate
+def trip_rides(user_id):
+    """Get total number of rides and passengers"""
+    response_object = {
+        'status': False,
+        'message': 'Invalid payload.'
+    }
+
+    try:
+        driver = User.query.get(user_id)
+        if driver.role != Role.driver:
+            response_object['message'] = 'Only drivers can access trip rides'
+            return jsonify(response_object), 200
+
+        trips = Trip.query.filter(
+            Trip.driver_id == user_id,
+            Trip.status == TripStatus.completed
+        ).all()
+
+        total_rides = len(trips)
+        total_passengers = 0
+        for trip in trips:
+            # Get seats booked for each trip from trip passenger table
+            total_passengers += TripPassenger.query.with_entities(
+                db.func.sum(
+                    TripPassenger.seats_booked
+                ).label('total_seats')
+            ).filter(
+                TripPassenger.trip_id == trip.id,
+                TripPassenger.request_status == RequestStatus.accepted
+            ).first().total_seats
+
+        response_object['status'] = True
+        response_object['message'] = 'Trip rides retrieved successfully'
+        response_object['data'] = {
+            'total_rides': total_rides,
+            'total_passengers': total_passengers
+        }
+
+        return jsonify(response_object), 200
+
+    except Exception as e:
         logger.exception(e)
         response_object['message'] = str(e)
         return jsonify(response_object), 200
