@@ -56,17 +56,28 @@ def get(user_id):
 
     rides_json = []
     for ride in rides:
-        user_trip = TripPassenger.query.filter_by(trip_id=ride.id).first()
-        if not user_trip:
+        user_trip = TripPassenger.query.filter_by(
+            trip_id=ride.id,
+            passenger_id=user_id,
+        ).all()
+
+        ride_requested = False
+        for trip in user_trip:
+            if trip.request_status in [RequestStatus.pending, RequestStatus.accepted]:
+                ride_requested = True
+                break
+
+        if not ride_requested:
             ride_json = ride.to_json()
-            ride_json["avg_rating"] = Rating.get_average_rating(ride.driver_id)
+            ride_json["avg_rating"] = Rating.get_average_rating(
+                ride.driver_id)
             rides_json.append(ride_json)
 
     return jsonify({
         "status": True,
         "message": "{} ride(s) available for {}".format(len(rides_json), user.fullname),
         "data": {
-            "rides": rides_json
+            "trips": rides_json
         }
     })
 
@@ -152,6 +163,17 @@ def create(user_id):
                 "message": "Not enough seats available"
             }), 200
 
+        ride = TripPassenger.query.filter_by(
+            trip_id=trip_id,
+            passenger_id=user_id
+        ).first()
+
+        if ride and ride.request_status not in [RequestStatus.rejected, RequestStatus.cancelled]:
+            return jsonify({
+                "status": False,
+                "message": "You have already booked this ride"
+            }), 200
+
         field_types = {
             "latitude": float, "longitude": float, "place": str
         }
@@ -178,9 +200,6 @@ def create(user_id):
         )
 
         ride.insert()
-
-        trip.number_of_seats = trip.number_of_seats - seats_booked
-        trip.update()
 
         response_object["status"] = True
         response_object["message"] = "Ride booked successfully"
@@ -282,6 +301,187 @@ def update(user_id, ride_id):
         response_object["message"] = "Ride updated successfully"
         response_object["data"] = {
             "ride": ride.to_json()
+        }
+
+        return jsonify(response_object), 200
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(e)
+        response_object["message"] = str(e)
+        return jsonify(response_object), 200
+
+
+@ride_blueprint.route("/ride/delete/<int:ride_id>", methods=["DELETE"])
+@authenticate
+def delete(user_id, ride_id):
+    """Delete a ride"""
+    response_object = {
+        "status": False,
+        "message": "Invalid payload."
+    }
+
+    try:
+        ride = TripPassenger.query.filter_by(
+            id=ride_id,
+            passenger_id=user_id
+        ).first()
+
+        if not ride:
+            return jsonify({
+                "status": False,
+                "message": "Ride not found"
+            }), 200
+
+        if ride.request_status != RequestStatus.pending:
+            return jsonify({
+                "status": False,
+                "message": "You can't delete {} ride".format(ride.request_status.name)
+            }), 200
+
+        ride.delete()
+
+        response_object["status"] = True
+        response_object["message"] = "Ride deleted successfully"
+
+        return jsonify(response_object), 200
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(e)
+        response_object["message"] = str(e)
+        return jsonify(response_object), 200
+
+
+@ride_blueprint.route("/ride/status", methods=["GET"])
+@authenticate
+def ride_status(user_id):
+    """Get ride status"""
+    response_object = {
+        "status": False,
+        "message": "Invalid payload."
+    }
+
+    try:
+        status = request.args.get("status")
+        status = str(status).lower() if status else None
+
+        if status and status not in TripStatus.__members__:
+            return jsonify({
+                "status": False,
+                "message": "Invalid status: {}".format(status)
+            }), 200
+
+        rides = Trip.query.join(
+            TripPassenger, TripPassenger.trip_id == Trip.id
+        ).filter(
+            TripPassenger.passenger_id == user_id,
+            TripPassenger.request_status == RequestStatus.accepted,
+        ).order_by(Trip.date.desc())
+
+        if status:
+            rides = rides.filter(Trip.status == TripStatus[status])
+
+        rides = rides.all()
+
+        response_object["status"] = True
+        response_object["message"] = "{} ride(s) found".format(len(rides))
+        response_object["data"] = {
+            "rides": [ride.to_json() for ride in rides]
+        }
+
+        return jsonify(response_object), 200
+
+    except Exception as e:
+        logger.error(e)
+        response_object["message"] = str(e)
+        return jsonify(response_object), 200
+
+
+@ride_blueprint.route("/ride/feedback/<int:ride_id>", methods=["POST"])
+@authenticate
+def rate_ride(user_id, ride_id):
+    """Rate a ride"""
+    response_object = {
+        "status": False,
+        "message": "Invalid payload."
+    }
+
+    try:
+        post_data = request.get_json()
+        if not post_data:
+            return jsonify(response_object), 200
+
+        field_types = {
+            "rating": int, "comment": str
+        }
+
+        required_fields = list(field_types.keys())
+        required_fields.remove("comment")
+
+        post_data = field_type_validator(post_data, field_types)
+        required_validator(post_data, required_fields)
+
+        rating = post_data.get("rating")
+        feedback = post_data.get("comment")
+
+        if rating < 1 or rating > 5:
+            return jsonify({
+                "status": False,
+                "message": "Rating must be between 1 and 5"
+            }), 200
+
+        ride = TripPassenger.query.filter_by(
+            id=ride_id,
+            passenger_id=user_id,
+            request_status=RequestStatus.accepted
+        ).first()
+
+        logger.info(ride)
+
+        if not ride:
+            return jsonify({
+                "status": False,
+                "message": "Trip not found"
+            }), 200
+
+        trip = Trip.query.get(ride.trip_id)
+
+        if trip.status != TripStatus.completed:
+            return jsonify({
+                "status": False,
+                "message": "You can't rate {} trip".format(trip.status.name)
+            }), 200
+
+        curr_rating = Rating.query.filter_by(
+            trip_id=trip.id,
+            passenger_id=user_id,
+            driver_id=trip.driver_id
+        ).first()
+
+        if curr_rating:
+            return jsonify({
+                "status": False,
+                "message": "You have already rated this trip"
+            }), 200
+
+        rating = Rating(
+            passenger_id=user_id,
+            driver_id=trip.driver_id,
+            trip_id=trip.id,
+            rating=rating
+        )
+
+        rating.insert()
+
+        if feedback:
+            rating.feedback = str(feedback).strip().capitalize()
+            rating.update()
+
+        response_object["status"] = True
+        response_object["message"] = "Trip rated successfully"
+        response_object["data"] = {
+            "rating": rating.to_json()
         }
 
         return jsonify(response_object), 200
