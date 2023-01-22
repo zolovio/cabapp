@@ -129,13 +129,18 @@ def create_trip(user_id):
             response_object['message'] = 'Number of seats must be greater than 0'
             return jsonify(response_object), 200
 
-        trip = Trip.query.filter_by(driver_id=user_id, date=date).first()
+        trip = Trip.query.filter_by(
+            driver_id=user_id,
+            date=date,
+            time=time
+        ).first()
+
         if trip and trip.status in [TripStatus.active, TripStatus.pending]:
             status = "an active" if trip.status == TripStatus.active \
                 else "a pending"
 
             response_object['message'] = "Sorry, there's {} trip for you " \
-                                         "on this date.".format(status)
+                                         "on this date & time.".format(status)
             return jsonify(response_object), 200
 
         field_types = {
@@ -603,28 +608,41 @@ def trip_rides(user_id):
             return jsonify(response_object), 200
 
         trips = Trip.query.filter(
-            Trip.driver_id == user_id,
-            Trip.status == TripStatus.completed
+            Trip.driver_id == user_id
         ).all()
 
-        total_rides = len(trips)
+        remaining_trips = 3
+        total_rides = 0
         total_passengers = 0
+
         for trip in trips:
-            # Get seats booked for each trip from trip passenger table
-            total_passengers += TripPassenger.query.with_entities(
-                db.func.sum(
-                    TripPassenger.seats_booked
-                ).label('total_seats')
-            ).filter(
-                TripPassenger.trip_id == trip.id,
-                TripPassenger.request_status == RequestStatus.accepted
-            ).first().total_seats
+            if trip.status in [TripStatus.pending, TripStatus.active]:
+                remaining_trips -= 1
+
+            elif trip.status == TripStatus.completed:
+                passengers = TripPassenger.query.filter(
+                    TripPassenger.trip_id == trip.id,
+                    TripPassenger.request_status == RequestStatus.accepted
+                ).with_entities(
+                    db.func.sum(
+                        TripPassenger.seats_booked
+                    ).label('total_seats')
+                ).first().total_seats
+
+                if passengers:
+                    total_passengers += passengers
+
+            else:
+                continue
+
+            total_rides += 1
 
         response_object['status'] = True
         response_object['message'] = 'Trip rides retrieved successfully'
         response_object['data'] = {
             'total_rides': total_rides,
-            'total_passengers': total_passengers
+            'total_passengers': total_passengers,
+            'remaining_trips': remaining_trips if (remaining_trips > 0) else 0
         }
 
         return jsonify(response_object), 200
