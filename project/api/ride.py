@@ -437,8 +437,6 @@ def rate_ride(user_id, ride_id):
             request_status=RequestStatus.accepted
         ).first()
 
-        logger.info(ride)
-
         if not ride:
             return jsonify({
                 "status": False,
