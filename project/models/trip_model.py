@@ -170,13 +170,14 @@ class TripPassenger(db.Model):
         db.session.commit()
 
     def to_json(self):
+        passenger = User.query.get(self.passenger_id)
         source = Location.query.get(self.source_id)
         destination = Location.query.get(self.destination_id)
 
         return {
             "id": self.id,
             "trip_id": self.trip_id,
-            "passenger_id": self.passenger_id,
+            "passenger": passenger.to_json() if passenger else None,
             "origin": source.to_json() if source else None,
             "destination": destination.to_json() if destination else None,
             "seats_booked": self.seats_booked,
