@@ -146,12 +146,11 @@ def update_driver_info(driver_id):
                     'BCRYPT_LOG_ROUNDS')
             ).decode()
 
-        gender = str(post_data.get('gender')).lower()
-        if gender:
-            try:
-                Gender[gender]
-            except KeyError:
-                raise APIError("Invalid gender {}".format(gender))
+        gender = post_data.get('gender')
+        gender = str(gender).lower() if gender else None
+        if gender and gender not in Gender.__members__:
+            response_object['message'] = "Invalid gender {}".format(gender)
+            return jsonify(response_object), 200
 
         driver.fullname = post_data.get('fullname') or driver.fullname
         driver.email = post_data.get('email') or driver.email
@@ -220,6 +219,9 @@ def update_driver_vehicle(driver_id):
 
             vehicle.insert()
 
+            driver.vehicle_verified = True
+            driver.update()
+
         else:
             vehicle.vehicle_no = post_data.get(
                 'vehicle_no') or vehicle.vehicle_no
@@ -278,6 +280,9 @@ def update_driver_licence(driver_id):
             )
 
             licence.insert()
+
+            driver.licence_verified = True
+            driver.update()
 
         else:
             licence.licence_no = post_data.get(

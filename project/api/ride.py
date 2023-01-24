@@ -367,10 +367,8 @@ def ride_status(user_id):
         status = str(status).lower() if status else None
 
         if status and status not in TripStatus.__members__:
-            return jsonify({
-                "status": False,
-                "message": "Invalid status: {}".format(status)
-            }), 200
+            response_object["message"] = "Invalid status: {}".format(status)
+            return jsonify(response_object), 200
 
         rides = Trip.query.join(
             TripPassenger, TripPassenger.trip_id == Trip.id
