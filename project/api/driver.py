@@ -219,6 +219,9 @@ def update_driver_vehicle(driver_id):
 
             vehicle.insert()
 
+            driver.vehicle_verified = True
+            driver.update()
+
         else:
             vehicle.vehicle_no = post_data.get(
                 'vehicle_no') or vehicle.vehicle_no
@@ -277,6 +280,9 @@ def update_driver_licence(driver_id):
             )
 
             licence.insert()
+
+            driver.licence_verified = True
+            driver.update()
 
         else:
             licence.licence_no = post_data.get(

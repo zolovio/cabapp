@@ -43,6 +43,8 @@ class User(db.Model):
     active = db.Column(db.Boolean, default=True, nullable=False)
     fcm_verified = db.Column(db.Boolean, default=False, nullable=False)
     email_verified = db.Column(db.Boolean, default=False, nullable=False)
+    licence_verified = db.Column(db.Boolean, default=False, nullable=True)
+    vehicle_verified = db.Column(db.Boolean, default=False, nullable=True)
     is_admin = db.Column(db.Boolean, nullable=False, default=False)
     email_otp = db.Column(db.Integer, nullable=True)
     role = db.Column(db.Enum(Role), nullable=False, default=Role.user)
@@ -93,6 +95,8 @@ class User(db.Model):
             "active": self.active,
             "mobile_no_verified": self.fcm_verified,
             "email_verified": self.email_verified,
+            "licence_verified": self.licence_verified,
+            "vehicle_verified": self.vehicle_verified,
             "timestamp": self.timestamp.strftime("%Y-%m-%d %H:%M:%S") if self.timestamp else None
         }
 

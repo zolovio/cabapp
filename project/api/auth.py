@@ -226,6 +226,8 @@ def register():
                     licence_image_back=licence.get('licence_image_back')
                 ).insert()
 
+                new_user.licence_verified = True
+
             if vehicle:
                 Vehicle(
                     user_id=new_user.id,
@@ -233,6 +235,10 @@ def register():
                     vehicle_image=vehicle.get('vehicle_image'),
                     vehicle_plate_image=vehicle.get('vehicle_plate_image')
                 ).insert()
+
+                new_user.vehicle_verified = True
+
+            new_user.update()
 
         auth_token = new_user.encode_auth_token(new_user.id)
         response_object['status'] = True
