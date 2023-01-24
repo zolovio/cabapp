@@ -3,7 +3,7 @@ import random
 import logging
 
 from flask import Blueprint, jsonify, request
-from flask import current_app, session
+from flask import current_app
 
 from project.models import (
     User,
@@ -134,12 +134,10 @@ def update_user_info(user_id):
                     "BCRYPT_LOG_ROUNDS")
             ).decode()
 
-        gender = str(post_data.get('gender')).lower()
-        if gender:
-            try:
-                Gender[gender]
-            except KeyError:
-                raise APIError("Invalid gender {}".format(gender))
+        gender = post_data.get('gender')
+        gender = str(gender).lower() if gender else gender
+        if gender and gender not in Gender.__members__:
+            raise APIError("Invalid gender {}".format(gender))
 
         user.fullname = post_data.get('fullname') or user.fullname
         user.email = post_data.get('email') or user.email

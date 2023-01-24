@@ -5,7 +5,6 @@ from project import db, bcrypt
 from project.api.authentications import authenticate
 from project.api.validators import email_validator, field_type_validator, required_validator
 from project.models import Role, Gender, User, BlacklistToken, Vehicle, Licence
-from project.exceptions import APIError
 
 auth_blueprint = Blueprint('auth', __name__, template_folder='templates')
 logger = logging.getLogger(__name__)
@@ -152,13 +151,11 @@ def register():
     required_fields = list(field_types.keys())
     required_fields.remove('profile_pic')
 
-    # check role
+    # verify role
     role = str(post_data.get('role')).lower()
-
-    try:
-        Role[role]
-    except KeyError:
-        raise APIError('Invalid role {}.'.format(role))
+    if role not in Role.__members__:
+        response_object['message'] = 'Invalid role {}.'.format(role)
+        return jsonify(response_object), 200
 
     if Role[role] != Role.driver:
         required_fields.remove('address')
@@ -169,11 +166,11 @@ def register():
     required_validator(post_data, required_fields)
     email_validator(post_data["email"])
 
+    # verify gender
     gender = str(post_data.get('gender')).lower()
-    try:
-        Gender[gender]
-    except KeyError:
-        raise APIError('Invalid gender {}.'.format(gender))
+    if gender not in Gender.__members__:
+        response_object['message'] = 'Invalid gender {}.'.format(gender)
+        return jsonify(response_object), 200
 
     fullname = post_data.get('fullname')
     email = post_data.get('email')

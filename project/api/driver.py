@@ -146,12 +146,11 @@ def update_driver_info(driver_id):
                     'BCRYPT_LOG_ROUNDS')
             ).decode()
 
-        gender = str(post_data.get('gender')).lower()
-        if gender:
-            try:
-                Gender[gender]
-            except KeyError:
-                raise APIError("Invalid gender {}".format(gender))
+        gender = post_data.get('gender')
+        gender = str(gender).lower() if gender else None
+        if gender and gender not in Gender.__members__:
+            response_object['message'] = "Invalid gender {}".format(gender)
+            return jsonify(response_object), 200
 
         driver.fullname = post_data.get('fullname') or driver.fullname
         driver.email = post_data.get('email') or driver.email

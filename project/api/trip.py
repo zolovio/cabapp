@@ -394,8 +394,8 @@ def trip_status(user_id, trip_id):
         post_data = field_type_validator(post_data, field_types)
         required_validator(post_data, required_fields)
 
-        status = str(post_data.get('status')).lower()
-
+        status = post_data.get('status')
+        status = str(status).lower() if status else status
         if status not in TripStatus.__members__:
             response_object['message'] = 'Invalid trip status'
             return jsonify(response_object), 200
@@ -438,7 +438,8 @@ def trip_status_list(user_id):
             response_object['message'] = 'Only drivers can access trips'
             return jsonify(response_object), 200
 
-        status = str(request.args.get('status')).lower()
+        status = request.args.get('status')
+        status = str(status).lower() if status else None
         if status and status not in TripStatus.__members__:
             response_object['message'] = 'Invalid trip status'
             return jsonify(response_object), 200
@@ -554,8 +555,8 @@ def trip_request(user_id, request_id):
         post_data = field_type_validator(post_data, field_types)
         required_validator(post_data, required_fields)
 
-        status = str(post_data.get('status')).lower()
-
+        status = post_data.get('status')
+        status = str(status).lower() if status else status
         if status not in RequestStatus.__members__:
             response_object['message'] = 'Invalid request status'
             return jsonify(response_object), 200
