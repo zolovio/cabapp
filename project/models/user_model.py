@@ -33,7 +33,7 @@ class User(db.Model):
     password = db.Column(db.String(255), nullable=False)
     dob = db.Column(db.DateTime, nullable=False)
     gender = db.Column(db.Enum(Gender), nullable=False)
-    address = db.Column(db.String(128), default="", nullable=True)
+    address = db.Column(db.Text, default="", nullable=True)
     location_id = db.Column(
         db.Integer, db.ForeignKey('location.id'), nullable=True)
     profile_picture = db.Column(db.String(128), default="", nullable=True)
@@ -234,15 +234,21 @@ class Vehicle(db.Model):
     timestamp = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     vehicle_no = db.Column(db.String(128), default="", nullable=False)
     vehicle_image = db.Column(db.String(128), default="", nullable=False)
+    vehicle_color = db.Column(db.String(128), default="", nullable=False)
+    vehicle_brand_name = db.Column(db.String(128), default="", nullable=True)
     vehicle_plate_image = db.Column(db.String(128), default="", nullable=False)
 
     def __repr__(self):
         return f"Vehicle {self.id} {self.user_id}"
 
-    def __init__(self, user_id: int, vehicle_no: str, vehicle_image: str, vehicle_plate_image: str):
+    def __init__(self, user_id: int, vehicle_no: str, vehicle_image: str,
+                 vehicle_plate_image: str = "", vehicle_color: str = "",
+                 vehicle_brand_name: str = ""):
         self.user_id = user_id
         self.vehicle_no = vehicle_no
         self.vehicle_image = vehicle_image
+        self.vehicle_color = vehicle_color
+        self.vehicle_brand_name = vehicle_brand_name
         self.vehicle_plate_image = vehicle_plate_image
 
     def insert(self):
@@ -263,6 +269,8 @@ class Vehicle(db.Model):
             "user_id": self.user_id,
             "vehicle_no": self.vehicle_no,
             "vehicle_image": self.vehicle_image,
+            "vehicle_color": self.vehicle_color,
+            "vehicle_brand_name": self.vehicle_brand_name,
             "vehicle_plate_image": self.vehicle_plate_image,
             "timestamp": self.timestamp.strftime("%Y-%m-%d %H:%M:%S") if self.timestamp else None
         }
