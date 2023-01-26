@@ -14,9 +14,8 @@ from project.models import (
 )
 
 from project import db, bcrypt
-from project.exceptions import APIError
 from project.api.authentications import authenticate
-from project.api.validators import email_validator, field_type_validator, required_validator
+from project.api.validators import email_validator, field_type_validator
 
 
 driver_blueprint = Blueprint('driver', __name__, template_folder='templates')
@@ -203,7 +202,8 @@ def update_driver_vehicle(driver_id):
             return jsonify(response_object), 200
 
         field_types = {
-            "vehicle_no": str, "vehicle_image": str, "vehicle_plate_image": str
+            "vehicle_no": str, "vehicle_image": str, "vehicle_color": str,
+            "vehicle_brand_name": str, "vehicle_plate_image": str
         }
 
         post_data = field_type_validator(post_data, field_types)
@@ -214,21 +214,24 @@ def update_driver_vehicle(driver_id):
                 user_id=driver.id,
                 vehicle_no=post_data.get('vehicle_no'),
                 vehicle_image=post_data.get('vehicle_image'),
-                vehicle_plate_image=post_data.get('vehicle_plate_image')
+                vehicle_color=post_data.get('vehicle_color'),
+                vehicle_plate_image=post_data.get('vehicle_plate_image'),
+                vehicle_brand_name=post_data.get('vehicle_brand_name')
             )
 
             vehicle.insert()
-
-            driver.vehicle_verified = True
-            driver.update()
 
         else:
             vehicle.vehicle_no = post_data.get(
                 'vehicle_no') or vehicle.vehicle_no
             vehicle.vehicle_image = post_data.get(
                 'vehicle_image') or vehicle.vehicle_image
+            vehicle.vehicle_color = post_data.get(
+                'vehicle_color') or vehicle.vehicle_color
             vehicle.vehicle_plate_image = post_data.get(
                 'vehicle_plate_image') or vehicle.vehicle_plate_image
+            vehicle.vehicle_brand_name = post_data.get(
+                'vehicle_brand_name') or vehicle.vehicle_brand_name
             vehicle.update()
 
         vehicle_json = vehicle.to_json()
@@ -280,9 +283,6 @@ def update_driver_licence(driver_id):
             )
 
             licence.insert()
-
-            driver.licence_verified = True
-            driver.update()
 
         else:
             licence.licence_no = post_data.get(

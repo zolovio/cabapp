@@ -52,6 +52,8 @@ def get(user_id):
     rides = Trip.query.filter(
         Trip.status == TripStatus.pending,
         Trip.number_of_seats > 0,
+    ).order_by(
+        Trip.date.asc()
     ).all()
 
     rides_json = []
@@ -429,19 +431,19 @@ def rate_ride(user_id, ride_id):
                 "message": "Rating must be between 1 and 5"
             }), 200
 
-        ride = TripPassenger.query.filter_by(
-            id=ride_id,
-            passenger_id=user_id,
-            request_status=RequestStatus.accepted
+        trip = Trip.query.join(
+            TripPassenger, Trip.id == TripPassenger.trip_id
+        ).filter(
+            TripPassenger.passenger_id == user_id,
+            TripPassenger.request_status == RequestStatus.accepted,
+            Trip.id == ride_id
         ).first()
 
-        if not ride:
+        if not trip:
             return jsonify({
                 "status": False,
                 "message": "Trip not found"
             }), 200
-
-        trip = Trip.query.get(ride.trip_id)
 
         if trip.status != TripStatus.completed:
             return jsonify({

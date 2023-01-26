@@ -448,7 +448,7 @@ def trip_status_list(user_id):
         if status:
             trips = trips.filter_by(status=TripStatus[status])
 
-        trips = trips.order_by(Trip.date.desc()).all()
+        trips = trips.order_by(Trip.date.asc()).all()
 
         trips = [trip.to_json() for trip in trips]
 
@@ -621,6 +621,8 @@ def trip_rides(user_id):
                 remaining_trips -= 1
 
             elif trip.status == TripStatus.completed:
+                total_rides += 1
+
                 passengers = TripPassenger.query.filter(
                     TripPassenger.trip_id == trip.id,
                     TripPassenger.request_status == RequestStatus.accepted
@@ -631,12 +633,7 @@ def trip_rides(user_id):
                 ).first().total_seats
 
                 if passengers:
-                    total_passengers += passengers
-
-            else:
-                continue
-
-            total_rides += 1
+                    total_passengers += int(passengers)
 
         response_object['status'] = True
         response_object['message'] = 'Trip rides retrieved successfully'
