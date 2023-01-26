@@ -211,6 +211,7 @@ def register():
 
             field_types = {
                 "vehicle_no": str, "vehicle_image": str,
+                "vehicle_color": str, "vehicle_brand_name": str,
                 "vehicle_plate_image": str, "licence_no": str,
                 "licence_image_front": str, "licence_image_back": str
             }
@@ -226,19 +227,15 @@ def register():
                     licence_image_back=licence.get('licence_image_back')
                 ).insert()
 
-                new_user.licence_verified = True
-
             if vehicle:
                 Vehicle(
                     user_id=new_user.id,
                     vehicle_no=vehicle.get('vehicle_no'),
                     vehicle_image=vehicle.get('vehicle_image'),
-                    vehicle_plate_image=vehicle.get('vehicle_plate_image')
+                    vehicle_color=vehicle.get('vehicle_color'),
+                    vehicle_plate_image=vehicle.get('vehicle_plate_image'),
+                    vehicle_brand_name=vehicle.get('vehicle_brand_name')
                 ).insert()
-
-                new_user.vehicle_verified = True
-
-            new_user.update()
 
         auth_token = new_user.encode_auth_token(new_user.id)
         response_object['status'] = True
