@@ -161,7 +161,7 @@ def create_trip(user_id):
 
         source.insert()
 
-        destination = Location.query.get(destination_id)
+        destination = Location.query.filter_by(id=destination_id).first()
         if not destination:
             response_object['message'] = 'Destination does not exist'
             return jsonify(response_object), 200
@@ -262,7 +262,7 @@ def update_trip(user_id, trip_id):
                     return jsonify(response_object), 200
 
         if destination_id:
-            destination = Location.query.get(destination_id)
+            destination = Location.query.filter_by(id=destination_id).first()
             if not destination:
                 response_object['message'] = 'Destination does not exist'
                 return jsonify(response_object), 200
@@ -277,7 +277,7 @@ def update_trip(user_id, trip_id):
         source = field_type_validator(source, field_types)
         required_validator(source, required_fields)
 
-        old_source = Location.query.get(trip.source_id)
+        old_source = Location.query.filter_by(id=trip.source_id).first()
         if old_source:
             old_source.latitude = source.get("latitude") or old_source.latitude
             old_source.longitude = source.get(
@@ -448,13 +448,15 @@ def trip_status_list(user_id):
         if status:
             trips = trips.filter_by(status=TripStatus[status])
 
-        trips = trips.order_by(Trip.date.asc()).all()
+        trips = trips.order_by(Trip.date.asc(), Trip.time.asc()).all()
 
         trips = [trip.to_json() for trip in trips]
 
         for trip in trips:
             passengers = TripPassenger.query.filter_by(
-                trip_id=trip['id']).all()
+                trip_id=trip['id'],
+                request_status=RequestStatus.accepted
+            ).all()
             trip['number_of_passengers'] = len(passengers)
 
         response_object['status'] = True
@@ -495,7 +497,7 @@ def trip_requests(user_id):
             Trip.status == TripStatus.pending,
             TripPassenger.request_status == RequestStatus.pending
         ).order_by(
-            TripPassenger.timestamp.desc()
+            TripPassenger.timestamp.asc()
         ).all()
 
         response_object['status'] = True
@@ -608,13 +610,17 @@ def trip_rides(user_id):
             response_object['message'] = 'Only drivers can access trip rides'
             return jsonify(response_object), 200
 
-        trips = Trip.query.filter(
-            Trip.driver_id == user_id
-        ).all()
-
         remaining_trips = 3
         total_rides = 0
         total_passengers = 0
+        documents_verified = False
+
+        if driver.vehicle_verified and driver.license_verified:
+            documents_verified = True
+
+        trips = Trip.query.filter(
+            Trip.driver_id == user_id
+        ).all()
 
         for trip in trips:
             if trip.status in [TripStatus.pending, TripStatus.active]:
@@ -640,7 +646,58 @@ def trip_rides(user_id):
         response_object['data'] = {
             'total_rides': total_rides,
             'total_passengers': total_passengers,
-            'remaining_trips': remaining_trips if (remaining_trips > 0) else 0
+            'remaining_trips': remaining_trips if (remaining_trips > 0) else 0,
+            'documents_verified': documents_verified
+        }
+
+        return jsonify(response_object), 200
+
+    except Exception as e:
+        logger.exception(e)
+        response_object['message'] = str(e)
+        return jsonify(response_object), 200
+
+
+@trip_blueprint.route('/trip/latest', methods=['GET'])
+@authenticate
+def latest_trip(user_id):
+    """Get latest trip"""
+    response_object = {
+        'status': False,
+        'message': 'Invalid payload.'
+    }
+
+    try:
+        driver = User.query.get(user_id)
+        if driver.role != Role.driver:
+            response_object['message'] = 'Only drivers can access latest trip'
+            return jsonify(response_object), 200
+
+        trip = Trip.query.filter(
+            Trip.driver_id == user_id,
+            Trip.status != TripStatus.completed,
+            Trip.status != TripStatus.cancelled,
+            Trip.date >= datetime.now().date()
+        ).order_by(
+            Trip.date.asc(), Trip.time.asc()
+        ).first()
+
+        trip = trip.to_json() if trip else None
+
+        if not trip:
+            response_object['message'] = 'No trip found'
+            return jsonify(response_object), 200
+
+        passengers = TripPassenger.query.filter_by(
+            trip_id=trip['id'],
+            request_status=RequestStatus.accepted
+        ).all()
+        trip['number_of_passengers'] = len(passengers)
+
+        response_object['status'] = True
+        response_object['message'] = 'Latest trip retrieved successfully'
+        response_object['data'] = {
+            'trip': trip
         }
 
         return jsonify(response_object), 200

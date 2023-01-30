@@ -58,7 +58,7 @@ class Church(db.Model):
         db.session.commit()
 
     def to_json(self):
-        location = Location.query.get(self.location_id)
+        location = Location.query.filter_by(id=self.location_id).first()
         return {
             "id": self.id,
             "name": self.name,

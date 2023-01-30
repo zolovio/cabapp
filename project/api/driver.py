@@ -332,7 +332,7 @@ def update_driver_location(driver_id):
 
         post_data = field_type_validator(post_data, field_types)
 
-        location = Location.query.get(driver.location_id)
+        location = Location.query.filter_by(id=driver.location_id).first()
         if not location:
             location = Location(
                 latitude=post_data.get('latitude'),
@@ -392,11 +392,12 @@ def delete_driver(driver_id):
         if vehicle:
             vehicle.delete()
 
-        location = Location.query.get(driver.location_id)
-        if location:
-            location.delete()
+        location = Location.query.filter_by(id=driver.location_id).first()
 
         driver.delete()
+
+        if location:
+            location.delete()
 
         response_object['status'] = True
         response_object['message'] = "Driver's account deleted successfully"
