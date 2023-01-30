@@ -656,3 +656,53 @@ def trip_rides(user_id):
         logger.exception(e)
         response_object['message'] = str(e)
         return jsonify(response_object), 200
+
+
+@trip_blueprint.route('/trip/latest', methods=['GET'])
+@authenticate
+def latest_trip(user_id):
+    """Get latest trip"""
+    response_object = {
+        'status': False,
+        'message': 'Invalid payload.'
+    }
+
+    try:
+        driver = User.query.get(user_id)
+        if driver.role != Role.driver:
+            response_object['message'] = 'Only drivers can access latest trip'
+            return jsonify(response_object), 200
+
+        trip = Trip.query.filter(
+            Trip.driver_id == user_id,
+            Trip.status != TripStatus.completed,
+            Trip.status != TripStatus.cancelled,
+            Trip.date >= datetime.now().date()
+        ).order_by(
+            Trip.date.asc(), Trip.time.asc()
+        ).first()
+
+        trip = trip.to_json() if trip else None
+
+        if not trip:
+            response_object['message'] = 'No trip found'
+            return jsonify(response_object), 200
+
+        passengers = TripPassenger.query.filter_by(
+            trip_id=trip['id'],
+            request_status=RequestStatus.accepted
+        ).all()
+        trip['number_of_passengers'] = len(passengers)
+
+        response_object['status'] = True
+        response_object['message'] = 'Latest trip retrieved successfully'
+        response_object['data'] = {
+            'trip': trip
+        }
+
+        return jsonify(response_object), 200
+
+    except Exception as e:
+        logger.exception(e)
+        response_object['message'] = str(e)
+        return jsonify(response_object), 200
