@@ -221,7 +221,7 @@ def update_church(user_id, church_id):
 
             location_id = loc.id
 
-        church = Church.query.get(church_id)
+        church = Church.query.filter_by(id=church_id).first()
         if not church:
             response_object['status'] = False
             response_object['message'] = 'Church does not exist'
@@ -262,17 +262,18 @@ def delete_church(user_id, church_id):
     }
 
     try:
-        church = Church.query.get(church_id)
+        church = Church.query.filter_by(id=church_id).first()
         if not church:
             response_object['status'] = False
             response_object['message'] = 'Church does not exist'
             return jsonify(response_object), 200
 
-        location = Location.query.get(church.location_id)
-        if location:
-            location.delete()
+        location = Location.query.filter_by(id=church.location_id).first()
 
         church.delete()
+
+        if location:
+            location.delete()
 
         response_object['status'] = True
         response_object['message'] = 'Church {} was deleted!'.format(

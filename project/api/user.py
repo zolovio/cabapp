@@ -184,7 +184,7 @@ def update_user_location(user_id):
 
         post_data = field_type_validator(post_data, field_types)
 
-        location = Location.query.get(user.location_id)
+        location = Location.query.filter_by(id=user.location_id).first()
         if not location:
             location = Location(
                 latitude=post_data.get('latitude'),
@@ -282,9 +282,6 @@ def email_otp(user_id):
 
     try:
         user = User.query.get(int(user_id))
-
-        if not user:
-            raise APIError("User does not exist")
 
         if request.method == 'GET':
             response_object['status'] = True
@@ -387,11 +384,11 @@ def delete_user(user_id):
         if not user:
             raise APIError("User does not exist")
 
-        location = Location.query.get(user.location_id)
+        location = Location.query.filter_by(id=user.location_id).first()
+        user.delete()
+
         if location:
             location.delete()
-
-        user.delete()
 
         response_object['status'] = True
         response_object['message'] = 'User deleted successfully.'
