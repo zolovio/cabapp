@@ -53,7 +53,8 @@ def get(user_id):
         Trip.status == TripStatus.pending,
         Trip.number_of_seats > 0,
     ).order_by(
-        Trip.date.asc()
+        Trip.date.asc(),
+        Trip.time.asc()
     ).all()
 
     rides_json = []
@@ -88,11 +89,20 @@ def get(user_id):
 @authenticate
 def get_ride(user_id, ride_id):
     """Get a ride"""
-    ride = TripPassenger.query.filter_by(
-        id=ride_id,
-        passenger_id=user_id
+    trip = Trip.query.filter_by(
+        id=ride_id
     ).first()
+    if not trip:
+        return jsonify({
+            "status": False,
+            "message": "Trip not found"
+        }), 200
 
+    ride = TripPassenger.query.filter_by(
+        trip_id=ride_id,
+        passenger_id=user_id,
+        request_status=RequestStatus.accepted
+    ).first()
     if not ride:
         return jsonify({
             "status": False,
@@ -100,9 +110,7 @@ def get_ride(user_id, ride_id):
         }), 200
 
     ride = ride.to_json()
-
-    trip = Trip.query.get(ride.trip_id)
-    ride["trip"] = trip.to_json() if trip else None
+    ride["trip"] = trip.to_json()
 
     return jsonify({
         "status": True,
@@ -140,7 +148,7 @@ def create(user_id):
         source = post_data.get("origin")
         seats_booked = post_data.get("seats_booked")
 
-        trip = Trip.query.get(trip_id)
+        trip = Trip.query.filter_by(id=trip_id).first()
         if not trip:
             return jsonify({
                 "status": False,
@@ -232,8 +240,17 @@ def update(user_id, ride_id):
         if not data:
             return jsonify(response_object), 200
 
+        trip = Trip.query.filter_by(
+            id=ride_id
+        ).first()
+        if not trip:
+            return jsonify({
+                "status": False,
+                "message": "Trip not found"
+            }), 200
+
         ride = TripPassenger.query.filter_by(
-            id=ride_id,
+            trip_id=ride_id,
             passenger_id=user_id
         ).first()
 
@@ -260,13 +277,6 @@ def update(user_id, ride_id):
 
         source = post_data.get("origin")
         seats_booked = post_data.get("seats_booked")
-
-        trip = Trip.query.get(ride.trip_id)
-        if not trip:
-            return jsonify({
-                "status": False,
-                "message": "Ride not found"
-            }), 200
 
         if trip.status != TripStatus.pending:
             return jsonify({
@@ -325,7 +335,7 @@ def delete(user_id, ride_id):
 
     try:
         ride = TripPassenger.query.filter_by(
-            id=ride_id,
+            trip_id=ride_id,
             passenger_id=user_id
         ).first()
 
@@ -335,13 +345,18 @@ def delete(user_id, ride_id):
                 "message": "Ride not found"
             }), 200
 
-        if ride.request_status != RequestStatus.pending:
+        if ride.request_status != RequestStatus.accepted:
             return jsonify({
                 "status": False,
                 "message": "You can't delete {} ride".format(ride.request_status.name)
             }), 200
 
+        location = Location.query.filter_by(
+            id=ride.source_id
+        ).first()
+
         ride.delete()
+        location.delete()
 
         response_object["status"] = True
         response_object["message"] = "Ride deleted successfully"
@@ -377,12 +392,15 @@ def ride_status(user_id):
         ).filter(
             TripPassenger.passenger_id == user_id,
             TripPassenger.request_status == RequestStatus.accepted,
-        ).order_by(Trip.date.desc())
+        )
 
         if status:
             rides = rides.filter(Trip.status == TripStatus[status])
 
-        rides = rides.all()
+        rides = rides.order_by(
+            Trip.date.asc(),
+            Trip.time.asc()
+        ).all()
 
         response_object["status"] = True
         response_object["message"] = "{} ride(s) found".format(len(rides))
